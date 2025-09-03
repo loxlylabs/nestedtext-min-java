@@ -159,11 +159,10 @@ class NestedTextTest {
             data.put("name", "John Doe");
             data.put("planet", "Proxima Centauri b");
 
-            // Use lineSeparator to ensure test passes on all OS
             String expected = """
                     name: John Doe
                     planet: Proxima Centauri b
-                    """.replace("\n", System.lineSeparator());
+                    """;
             String result = nt.dump(data);
             assertEquals(expected, result);
         }
@@ -175,7 +174,7 @@ class NestedTextTest {
                     - one
                     - two
                     - three
-                    """.replace("\n", System.lineSeparator());
+                    """;
             String result = nt.dump(data);
             assertEquals(expected, result);
         }
@@ -199,13 +198,11 @@ class NestedTextTest {
                     notes:
                       > First line.
                       > Second line.
-                    """.replace("\n", System.lineSeparator());
+                    """;
 
-            // Configure for predictable output
             String result = nt.indent(2)
-                    .lineSeparator("\n")
                     .dump(person);
-            assertEquals(expected.trim(), result.trim());
+            assertEquals(expected, result);
         }
 
         @Test
@@ -223,8 +220,8 @@ class NestedTextTest {
                     active: true
                     """.replace("\n", System.lineSeparator());
 
-            String result = nt.lineSeparator("\n").dump(person);
-            assertEquals(expected.trim(), result.trim());
+            String result = nt.dump(person);
+            assertEquals(expected, result);
         }
 
         @Test
@@ -236,9 +233,9 @@ class NestedTextTest {
             String expected = """
                     companyName: Acme
                     yearFounded: 2025
-                    """.replace("\n", System.lineSeparator());
+                    """;
 
-            String result = nt.lineSeparator("\n").dump(company);
+            String result = nt.dump(company);
             assertEquals(expected.trim(), result.trim());
         }
 
@@ -267,8 +264,8 @@ class NestedTextTest {
                         - 3
                     """;
 
-            String result = nt.lineSeparator("\n").dump(data);
-            assertEquals(expected.trim(), result.trim());
+            String result = nt.dump(data);
+            assertEquals(expected, result);
         }
     }
 
@@ -279,7 +276,7 @@ class NestedTextTest {
         void shouldThrowOnTabIndentation() {
             String input = "key:\n\t- list item";
             NestedTextException ex = assertThrows(NestedTextException.class, () -> nt.load(input));
-            assertTrue(ex.getMessage().contains("Tabs are not allowed"));
+            assertEquals("Error at line 2, column 1: Tabs are not allowed for indentation; use spaces instead.", ex.getMessage());
             assertEquals(2, ex.getLine());
         }
 
@@ -291,7 +288,7 @@ class NestedTextTest {
                       key3: value
                     """;
             NestedTextException ex = assertThrows(NestedTextException.class, () -> nt.load(input));
-            assertTrue(ex.getMessage().contains("Mismatched indentation"));
+            assertEquals("Error at line 3, column 3: Mismatched indentation level.", ex.getMessage());
             assertEquals(3, ex.getLine());
         }
 
@@ -299,7 +296,7 @@ class NestedTextTest {
         void shouldThrowOnTopLevelIndent() {
             String input = "  key: value";
             NestedTextException ex = assertThrows(NestedTextException.class, () -> nt.load(input));
-            assertTrue(ex.getMessage().contains("Top-level content cannot be indented"));
+            assertEquals("Error at line 1: Top-level content cannot be indented.", ex.getMessage());
         }
 
         @Test
@@ -309,7 +306,7 @@ class NestedTextTest {
             // following it and no colon is not.
             String input = "a key but no colon";
             NestedTextException ex = assertThrows(NestedTextException.class, () -> nt.load(input));
-            assertTrue(ex.getMessage().contains("couldn't find a key"));
+            assertEquals("Error at line 1, column 1: Unrecognized line structure, couldn't find a key.", ex.getMessage());
         }
     }
 }

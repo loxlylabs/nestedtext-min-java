@@ -68,7 +68,7 @@ class Scanner {
         };
         tokens.addAll(newTokens);
 
-        tokens.add(createToken(TokenType.NEWLINE, current));
+        tokens.add(createToken(TokenType.NEWLINE, current + 1));
 
         return tokens;
     }
@@ -79,7 +79,7 @@ class Scanner {
         if (peek() == ' ') {
             advance();
         }
-        tokens.add(createToken(TokenType.DASH, keyStart));
+        tokens.add(createToken(TokenType.DASH, keyStart + 1));
         if (!isEOL()) {
             tokens.add(processString());
         }
@@ -92,7 +92,7 @@ class Scanner {
         if (peek() == ' ') {
             advance();
         }
-        tokens.add(createToken(TokenType.GREATER, keyStart));
+        tokens.add(createToken(TokenType.GREATER, keyStart + 1));
         if (!isEOL()) {
             tokens.add(processString());
         }
@@ -130,18 +130,18 @@ class Scanner {
                         advance();
                     }
                     // whitespace before the colon is trimmed
-                    return createToken(TokenType.KEY, value.stripTrailing(), keyStart);
+                    return createToken(TokenType.KEY, value.stripTrailing(), keyStart + 1);
                 }
             } else {
                 advance();
             }
         }
-        throw new NestedTextException("Unrecognized line structure, couldn't find a key.", lineNumber, keyStart);
+        throw new NestedTextException("Unrecognized line structure, couldn't find a key.", lineNumber, keyStart + 1);
     }
 
     private Token processString() {
         String value = curLine.substring(current);
-        return createToken(TokenType.STRING, value, current);
+        return createToken(TokenType.STRING, value, current + 1);
     }
 
     private List<Token> handleIndentation() {
@@ -154,7 +154,7 @@ class Scanner {
         }
 
         if (peek() == '\t') {
-            throw new NestedTextException("Tabs are not allowed for indentation; use spaces instead.", lineNumber, current);
+            throw new NestedTextException("Tabs are not allowed for indentation; use spaces instead.", lineNumber, current + 1);
         }
 
         if (peek() == '#' || isEOL()) {
@@ -169,7 +169,7 @@ class Scanner {
             tokens.add(createToken(TokenType.INDENT, 0));
         } else if (indent < lastIndent) {
             if (!indentStack.contains(indent)) {
-                throw new NestedTextException("Mismatched indentation level.", lineNumber, current);
+                throw new NestedTextException("Mismatched indentation level.", lineNumber, current + 1);
             }
             while (indent < indentStack.peek()) {
                 indentStack.pop();
