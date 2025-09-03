@@ -41,10 +41,10 @@ class Scanner {
             }
         }
         while (indentStack.size() > 1) {
-            tokens.add(createToken(TokenType.DEDENT));
+            tokens.add(createToken(TokenType.DEDENT, 0));
             indentStack.pop();
         }
-        tokens.add(createToken(TokenType.EOF));
+        tokens.add(createToken(TokenType.EOF, 0));
         return tokens;
     }
 
@@ -68,17 +68,18 @@ class Scanner {
         };
         tokens.addAll(newTokens);
 
-        tokens.add(createToken(TokenType.NEWLINE));
+        tokens.add(createToken(TokenType.NEWLINE, current));
 
         return tokens;
     }
 
     private List<Token> processListLine() {
+        final int keyStart = current;
         List<Token> tokens = new ArrayList<>();
         if (peek() == ' ') {
             advance();
         }
-        tokens.add(createToken(TokenType.DASH));
+        tokens.add(createToken(TokenType.DASH, keyStart));
         if (!isEOL()) {
             tokens.add(processString());
         }
@@ -86,11 +87,12 @@ class Scanner {
     }
 
     private List<Token> processMultilineStringLine() {
+        final int keyStart = current;
         List<Token> tokens = new ArrayList<>();
         if (peek() == ' ') {
             advance();
         }
-        tokens.add(createToken(TokenType.GREATER));
+        tokens.add(createToken(TokenType.GREATER, keyStart));
         if (!isEOL()) {
             tokens.add(processString());
         }
@@ -111,7 +113,7 @@ class Scanner {
     }
 
     private Token processKey() {
-        int keyStart = current;
+        final int keyStart = current;
 
         // Get key
         while (!isEOL()) {
@@ -128,7 +130,7 @@ class Scanner {
                         advance();
                     }
                     // whitespace before the colon is trimmed
-                    return createToken(TokenType.KEY, value.stripTrailing());
+                    return createToken(TokenType.KEY, value.stripTrailing(), keyStart);
                 }
             } else {
                 advance();
@@ -139,7 +141,7 @@ class Scanner {
 
     private Token processString() {
         String value = curLine.substring(current);
-        return createToken(TokenType.STRING, value);
+        return createToken(TokenType.STRING, value, current);
     }
 
     private List<Token> handleIndentation() {
@@ -164,14 +166,14 @@ class Scanner {
 
         if (indent > lastIndent) {
             indentStack.push(indent);
-            tokens.add(createToken(TokenType.INDENT));
+            tokens.add(createToken(TokenType.INDENT, 0));
         } else if (indent < lastIndent) {
             if (!indentStack.contains(indent)) {
                 throw new NestedTextException("Mismatched indentation level.", lineNumber, current);
             }
             while (indent < indentStack.peek()) {
                 indentStack.pop();
-                tokens.add(createToken(TokenType.DEDENT));
+                tokens.add(createToken(TokenType.DEDENT, 0));
             }
         }
         return tokens;
@@ -194,11 +196,11 @@ class Scanner {
         return curLine.charAt(current);
     }
 
-    private Token createToken(TokenType type) {
-        return createToken(type, null);
+    private Token createToken(TokenType type, int column) {
+        return createToken(type, null, column);
     }
 
-    private Token createToken(TokenType type, Object literal) {
-        return new Token(type, literal, lineNumber);
+    private Token createToken(TokenType type, Object literal, int column) {
+        return new Token(type, literal, lineNumber, column);
     }
 }

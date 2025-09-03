@@ -1,6 +1,7 @@
 package org.loxlylabs.nestedtext;
 
 import java.io.*;
+import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.*;
@@ -86,6 +87,10 @@ public class NestedText {
         return switch (o) {
             case null -> null;
             case String s -> s;
+            case Boolean b -> b.toString();
+            case Number n -> n.toString();
+            case Enum<?> e -> e.name();
+            case Character c -> c.toString();
             case Map<?, ?> m -> {
                 Map<String, Object> result = new LinkedHashMap<>();
                 for (var e : m.entrySet()) {
@@ -102,6 +107,13 @@ public class NestedText {
             default -> {
                 if (adapters.containsKey(o.getClass())) {
                     yield applyAdapter(o.getClass(), o);
+                } else if (o.getClass().isArray()) {
+                    List<Object> list = new ArrayList<>();
+                    int length = Array.getLength(o);
+                    for (int i = 0; i < length; i++) {
+                        list.add(toNestedTextCompatible(Array.get(o, i)));
+                    }
+                    yield list;
                 } else if (o.getClass().isRecord()) {
                     Map<String,Object> map = new LinkedHashMap<>();
                     for (var comp : o.getClass().getRecordComponents()) {
@@ -109,19 +121,26 @@ public class NestedText {
                             Object value = comp.getAccessor().invoke(o);
                             map.put(comp.getName(), toNestedTextCompatible(value));
                         } catch (Exception e) {
-                            throw new RuntimeException(e);
+                            throw new NestedTextException("Failed to serialize field '"
+                                    + comp.getName()
+                                    + "' from object of type "
+                                    + o.getClass().getSimpleName(), e);
                         }
                     }
                     yield map;
                 } else {
                     // fallback: use public fields
                     Map<String,Object> map = new LinkedHashMap<>();
-                    for (var field : o.getClass().getFields()) {
+                    for (var field : o.getClass().getDeclaredFields()) {
                         try {
+                            field.setAccessible(true);
                             Object value = field.get(o);
                             map.put(field.getName(), toNestedTextCompatible(value));
                         } catch (Exception e) {
-                            throw new RuntimeException(e);
+                            throw new NestedTextException("Failed to serialize field '"
+                                    + field.getName()
+                                    + "' from object of type "
+                                    + o.getClass().getSimpleName(), e);
                         }
                     }
                     yield map;

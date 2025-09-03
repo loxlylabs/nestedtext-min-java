@@ -12,11 +12,16 @@ public class NestedTextException extends RuntimeException {
     }
 
     public NestedTextException(String message, Token token) {
-        super(String.format("Error at line %d: %s (near token: %s)", token.line, message, token));
+        super(String.format("Error at line %d, column %d: %s", token.line, token.column, message));
         this.line = token.line;
-        this.column = 0;
+        this.column = token.column;
     }
 
+    public NestedTextException(String message, Throwable cause) {
+        super(message, cause);
+        this.line = -1;
+        this.column = -1;
+    }
 
     public int getLine() {
         return line;
