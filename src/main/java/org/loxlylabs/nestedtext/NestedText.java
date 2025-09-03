@@ -7,11 +7,59 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Stream;
 
+/**
+ * The main class for loading and dumping NestedText data. This class provides methods
+ * to parse NestedText from a String or File into Java objects (typically a {@code Map<String, Object>},
+ * {@code List<Object>}, or {@code String}) and to serialize Java objects back into a NestedText formatted string.
+ *
+ * <p>This implementation supports the Minimal NestedText specification.
+ *
+ * <p>Usage Example:
+ * <pre>{@code
+ * // Create a new NestedText instance
+ * NestedText nt = new NestedText();
+ *
+ * // Loading NestedText
+ * String data = """
+ * name: John Doe
+ * age: 42
+ * children:
+ * - Jane
+ * - Bill
+ * """;
+ * Map<String, Object> person = (Map<String, Object>) nt.load(data);
+ * System.out.println(person.get("name")); // Prints "John Doe"
+ *
+ * // Serializing to NestedText
+ * Map<String, Object> address = Map.of("city", "Anytown", "zip", "12345");
+ * String nestedText = nt.dump(address);
+ * System.out.println(nestedText);
+ * // Prints:
+ * // city: Anytown
+ * // zip: 12345
+ * }</pre>
+ *
+ * <p>Instances of this class are configurable and can be reused.
+ *
+ * @see <a href="https://nestedtext.org/en/latest/minimal-nestedtext.html">Minimal NestedText Specification</a>
+ */
 public class NestedText {
 
-    // must return String, Map, List, or nested adapters
+    /**
+     * A functional interface for providing a custom serialization strategy for a specific class.
+     * This is useful for types that the default reflection-based serializer cannot handle correctly.
+     *
+     * @param <T> The type to adapt.
+     */
     @FunctionalInterface
     public interface Adapter<T> {
+        /**
+         * Converts a given value of type T into a NestedText-compatible object.
+         * The returned object should be a {@code String}, {@code Map}, or {@code Collection}.
+         *
+         * @param value The object to convert.
+         * @return The NestedText-compatible representation of the value.
+         */
         Object toNestedTextValue(T value);
     }
 
@@ -20,29 +68,75 @@ public class NestedText {
     private int indentAmount = 4;
     private boolean useReflection = true;
 
+    /**
+     * Creates a new NestedText instance with default settings.
+     * <ul>
+     * <li>Indentation: 4 spaces</li>
+     * <li>Line Separator: System default</li>
+     * <li>Reflection for dumping: enabled</li>
+     * </ul>
+     */
     public NestedText() {
     }
 
+    /**
+     * Registers a custom adapter for serializing a specific class to a NestedText-compatible format.
+     *
+     * @param type    The class type to register the adapter for.
+     * @param adapter The adapter that converts an instance of the class to a {@code String}, {@code Map}, or {@code List}.
+     * @param <T>     The type of the class.
+     * @return This {@code NestedText} instance for fluent configuration.
+     */
     public <T> NestedText registerAdapter(Class<T> type, Adapter<T> adapter) {
         adapters.put(type, adapter);
         return this;
     }
 
+    /**
+     * Sets the number of spaces to use for each level of indentation when dumping data.
+     * The default is 4.
+     *
+     * @param numSpaces The number of spaces for indentation (must be positive).
+     * @return This {@code NestedText} instance for fluent configuration.
+     */
     public NestedText indent(int numSpaces) {
         this.indentAmount = numSpaces;
         return this;
     }
 
+    /**
+     * Sets the line separator string to use when dumping data.
+     * The default is the system's line separator.
+     *
+     * @param lineSeparator The string to use for line breaks (e.g., "\n" or "\r\n").
+     * @return This {@code NestedText} instance for fluent configuration.
+     */
     public NestedText lineSeparator(String lineSeparator) {
         this.eol = lineSeparator;
         return this;
     }
 
+    /**
+     * Enables or disables the use of reflection for serializing arbitrary Java objects during a dump operation.
+     * When enabled (default), the library will attempt to serialize records and POJOs by inspecting their
+     * fields and components. If disabled, a {@code NestedTextException} will be thrown for unsupported types.
+     *
+     * @param useReflection {@code true} to enable reflection (default), {@code false} to disable.
+     * @return This {@code NestedText} instance for fluent configuration.
+     */
     public NestedText useReflection(boolean useReflection) {
         this.useReflection = useReflection;
         return this;
     }
 
+    /**
+     * Loads (parses) NestedText content from a file.
+     *
+     * @param file The file to read from.
+     * @return A {@code Map<String, Object>}, {@code List<Object>}, {@code String}, or {@code null} if the file is empty.
+     * @throws NestedTextException  if the file content is not valid NestedText.
+     * @throws IOException if an I/O error occurs while reading the file.
+     */
     public Object load(File file) throws IOException {
         try (InputStream is = new FileInputStream(file);
              BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
@@ -50,10 +144,25 @@ public class NestedText {
         }
     }
 
+    /**
+     * Loads (parses) NestedText content from a path.
+     *
+     * @param path The path to the file to read from.
+     * @return A {@code Map<String, Object>}, {@code List<Object>}, {@code String}, or {@code null} if the file is empty.
+     * @throws NestedTextException  if the file content is not valid NestedText.
+     * @throws IOException if an I/O error occurs while reading the file.
+     */
     public Object load(Path path) throws IOException {
         return load(path.toFile());
     }
 
+    /**
+     * Loads (parses) NestedText content from a string.
+     *
+     * @param contents The string containing NestedText data.
+     * @return A {@code Map<String, Object>}, {@code List<Object>}, {@code String}, or {@code null} if the string is empty or contains only whitespace/comments.
+     * @throws NestedTextException if the string is not valid NestedText.
+     */
     public Object load(String contents) {
         return load(contents.lines());
     }
@@ -65,6 +174,21 @@ public class NestedText {
         return parser.parse();
     }
 
+    /**
+     * Dumps (serializes) a Java object into a NestedText formatted string.
+     * <p>
+     * The method supports common Java types by default:
+     * <ul>
+     * <li>{@code Map} (keys are converted to strings)</li>
+     * <li>{@code Collection} and arrays (become lists)</li>
+     * <li>{@code String}, {@code Number}, {@code Boolean}, {@code Character}, {@code Enum} (become strings)</li>
+     * <li>Java Records and POJOs (become dictionaries, requires reflection)</li>
+     * </ul>
+     *
+     * @param obj The object to serialize.
+     * @return A string containing the NestedText representation of the object.
+     * @throws NestedTextException if an unsupported object type is encountered or a reflection error occurs.
+     */
     public String dump(Object obj) {
         StringBuilder sb = new StringBuilder();
         if (useReflection) {

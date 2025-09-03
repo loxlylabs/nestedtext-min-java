@@ -5,7 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Parser {
+class Parser {
 
     private final List<Token> tokens;
     private int current = 0;
