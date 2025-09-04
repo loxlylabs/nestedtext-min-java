@@ -17,6 +17,7 @@
       <url>http://www.opensource.org/licenses/mit-license.php</url>
     </license>
   </licenses>
+
   <developers>
     <developer>
       <name>Jonathan Janisch</name>
@@ -25,6 +26,12 @@
       <organizationUrl>https://www.loxlylabs.org</organizationUrl>
     </developer>
   </developers>
+
+  <scm>
+    <connection>scm:git:git://github.com/loxlylabs/nestedtext-min-java.git</connection>
+    <developerConnection>scm:git:ssh://github.com/loxlylabs/nestedtext-min-java.git</developerConnection>
+    <url>https://github.com/loxlylabs/nestedtext-min-java/tree/main</url>
+  </scm>
 
   <properties>
     <maven.compiler.release>21</maven.compiler.release>
