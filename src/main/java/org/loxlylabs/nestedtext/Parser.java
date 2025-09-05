@@ -146,7 +146,7 @@ class Parser {
             }
         }
         if (check(TokenType.DASH) || check(TokenType.KEY)) {
-            throw error(peek(), "expected string.");
+            throw error(peek(), "extra content.");
         }
         if (check(TokenType.INDENT)) {
             throw new NestedTextException("invalid indentation.",

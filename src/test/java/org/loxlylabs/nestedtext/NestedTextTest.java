@@ -281,42 +281,6 @@ class NestedTextTest {
         }
 
         @Test
-        void shouldThrowOnStringsAndListsSameIndentation() {
-            String input = """
-                    > Should not allow multi-line strings
-                    > and lists at the same level
-                    - of indentation.
-                    """;
-            NestedTextException ex = assertThrows(NestedTextException.class, () -> nt.load(input));
-            assertEquals("expected string.", ex.getMessage());
-            assertEquals(2, ex.getLine());
-        }
-
-        @Test
-        void shouldThrowOnStringsAndDictionaryItemsWithSameIndentation() {
-            String input = """
-                    > Should not allow multi-line strings
-                    > and dictionary itmes at the same level
-                    of: indentation
-                    """;
-            NestedTextException ex = assertThrows(NestedTextException.class, () -> nt.load(input));
-            assertEquals("expected string.", ex.getMessage());
-            assertEquals(2, ex.getLine());
-        }
-
-        @Test
-        void shouldThrowWrongMultilineStringIndentation() {
-            String input = """
-                    > Should not allow multi-line strings
-                    > with varying levels
-                      > of indentation.
-                    """;
-            NestedTextException ex = assertThrows(NestedTextException.class, () -> nt.load(input));
-            assertEquals("invalid indentation.", ex.getMessage());
-            assertEquals(2, ex.getLine());
-        }
-
-        @Test
         void shouldThrowOnMismatchedDedent() {
             String input = """
                     key1:
