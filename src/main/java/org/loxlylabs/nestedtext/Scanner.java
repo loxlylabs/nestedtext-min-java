@@ -136,7 +136,7 @@ class Scanner {
                 advance();
             }
         }
-        throw new NestedTextException("Unrecognized line structure, couldn't find a key.", lineNumber, keyStart + 1);
+        throw new NestedTextException("unrecognized line.", lineNumber, keyStart + 1);
     }
 
     private Token processString() {
@@ -154,7 +154,7 @@ class Scanner {
         }
 
         if (peek() == '\t') {
-            throw new NestedTextException("Tabs are not allowed for indentation; use spaces instead.", lineNumber, current + 1);
+            throw new NestedTextException("invalid character in indentation: '\\t'.", lineNumber, current + 1);
         }
 
         if (peek() == '#' || isEOL()) {
@@ -169,7 +169,7 @@ class Scanner {
             tokens.add(createToken(TokenType.INDENT, 0));
         } else if (indent < lastIndent) {
             if (!indentStack.contains(indent)) {
-                throw new NestedTextException("Mismatched indentation level.", lineNumber, current + 1);
+                throw new NestedTextException("invalid indentation, partial dedent.", lineNumber, current + 1);
             }
             while (indent < indentStack.peek()) {
                 indentStack.pop();

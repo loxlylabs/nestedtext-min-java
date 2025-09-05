@@ -18,7 +18,7 @@ class Parser {
         // A NestedText document can be a dictionary, a list, a multiline string, or empty.
         if (isAtEnd() || peek().type == TokenType.EOF) return null;
         if (check(TokenType.INDENT)) {
-            throw error(peek(), "Top-level content cannot be indented.");
+            throw error(peek(), "top-level content must start in column 1.");
         }
         return parseObject();
     }
@@ -48,7 +48,7 @@ class Parser {
                 advance();
                 advance();
                 value = parseObject();
-                consume(TokenType.DEDENT, "Expect dedent after list item block.");
+                consume(TokenType.DEDENT, "invalid indentation.");
             }
             // Simple string value
             else if (match(TokenType.STRING)) {
@@ -74,7 +74,7 @@ class Parser {
                 advance();
                 advance();
                 value = parseObject();
-                consume(TokenType.DEDENT, "Expect dedent after dictionary item block.");
+                consume(TokenType.DEDENT, "invalid indentation.");
             }
             // Simple string value
             else if (match(TokenType.STRING)) {
