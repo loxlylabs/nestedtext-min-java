@@ -118,8 +118,8 @@ public class OfficialTests {
                             // 2. amendment test reports column where encoding found
                             //    invalid character. In Java, this does not seem
                             //    simple to obtain.
-                            if (entry.getKey().equals("amendment")
-                                    || !ex.getMessage().contains("invalid indentation")) {
+                            if (!entry.getKey().equals("amendment")
+                                    && !ex.getMessage().contains("invalid indentation")) {
                                 assertEquals(tc.load_err.colno, ex.getColumn());
                             }
                         } else {
