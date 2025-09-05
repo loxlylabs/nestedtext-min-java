@@ -113,13 +113,10 @@ public class OfficialTests {
 
                             // DEVIATION FROM OFFICIAL LIB
                             // ---------------------------
-                            // 1. Official NestedText reports expected indentation
-                            //    whereas we report actual indentation as the col.
-                            // 2. amendment test reports column where encoding found
+                            // 1. amendment test reports column where encoding found
                             //    invalid character. In Java, this does not seem
                             //    simple to obtain.
-                            if (!entry.getKey().equals("amendment")
-                                    && !ex.getMessage().contains("invalid indentation")) {
+                            if (tc.load_err.colno != null && !entry.getKey().equals("amendment")) {
                                 assertEquals(tc.load_err.colno, ex.getColumn());
                             }
                         } else {

@@ -224,7 +224,7 @@ class Scanner {
             tokens.add(createToken(TokenType.INDENT, indent));
         } else if (indent < lastIndent) {
             if (!indentStack.contains(indent)) {
-                throw new NestedTextException("invalid indentation, partial dedent.", lineNumber - 1, current);
+                throw new NestedTextException("invalid indentation, partial dedent.", lineNumber - 1, 0);
             }
             while (indent < indentStack.peek()) {
                 indentStack.pop();

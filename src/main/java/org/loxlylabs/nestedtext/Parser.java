@@ -45,7 +45,12 @@ class Parser {
     private List<Object> parseList() {
         List<Object> list = new ArrayList<>();
 
+        int expectedIndentation = -1;
+
         while (match(TokenType.DASH)) {
+            if (expectedIndentation == -1) {
+                expectedIndentation = previous().column;
+            }
             Object value;
             // Value for this list item is a new object
             if (check(TokenType.NEWLINE) && checkNext(TokenType.INDENT)) {
@@ -68,7 +73,9 @@ class Parser {
             throw error(peek(), "expected list item.");
         }
         if (check(TokenType.INDENT)) {
-            throw error(peek(), "invalid indentation.");
+            throw new NestedTextException("invalid indentation.",
+                    peek().line,
+                    expectedIndentation == -1 ? peek().column : expectedIndentation);
         }
         return list;
     }
@@ -76,7 +83,12 @@ class Parser {
     private Map<String,Object> parseDictionary() {
         Map<String,Object> dictionary = new LinkedHashMap<>();
 
+        int expectedIndentation = -1;
+
         while (match(TokenType.KEY)) {
+            if (expectedIndentation == -1) {
+                expectedIndentation = previous().column;
+            }
             String key = (String)previous().literal;
             if (dictionary.containsKey(key)) {
                 throw error(previous(), "duplicate key: " + key + ".");
@@ -103,7 +115,9 @@ class Parser {
             throw error(peek(), "expected dictionary item.");
         }
         if (check(TokenType.INDENT)) {
-            throw error(peek(), "invalid indentation.");
+            throw new NestedTextException("invalid indentation.",
+                    peek().line,
+                    expectedIndentation == -1 ? peek().column : expectedIndentation);
         }
         return dictionary;
     }
@@ -111,8 +125,13 @@ class Parser {
     private String parseMultilineString() {
         StringBuilder sb = new StringBuilder();
 
+        int expectedIndentation = -1;
+
         boolean start = true;
         while (!isAtEnd() && peek().type == TokenType.GREATER) {
+            if (expectedIndentation == -1) {
+                expectedIndentation = peek().column;
+            }
             if (!start) {
                 sb.append("\n");
             }
@@ -130,7 +149,9 @@ class Parser {
             throw error(peek(), "expected string.");
         }
         if (check(TokenType.INDENT)) {
-            throw error(peek(), "invalid indentation.");
+            throw new NestedTextException("invalid indentation.",
+                    peek().line,
+                    expectedIndentation == -1 ? peek().column : expectedIndentation);
         }
         return sb.toString();
     }
