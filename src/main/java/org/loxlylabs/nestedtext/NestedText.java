@@ -323,7 +323,7 @@ public class NestedText {
         String indentStr = " ".repeat(indent);
         if (s.contains(eol)) {
             // multiline string
-            for (String line : s.split(eol)) {
+            for (String line : s.split(eol, -1)) {
                 sb.append(indentStr)
                         .append("> ")
                         .append(line)

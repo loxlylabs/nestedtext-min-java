@@ -98,10 +98,10 @@ public class OfficialTests {
                             }
                             assertEquals(tc.load_err.lineno, ex.getLine());
 
-                            // DEVIATION FROM OFFICIAL LIB
+                            // Minor deviation from official lib
                             // ---------------------------
                             // amendment and asylum tests reports column where
-                            // encoding found invalid character. In Java, this
+                            // decoding found invalid character. In Java, this
                             // does not seem simple to obtain.
                             if (tc.load_err.colno != null
                                     && !entry.getKey().equals("asylum")
@@ -109,9 +109,14 @@ public class OfficialTests {
                                 assertEquals(tc.load_err.colno, ex.getColumn());
                             }
                         } else {
-                            Object load = new NestedText().load(decodedBytes);
-                            String expected = new ObjectMapper().writeValueAsString(load);
-                            String actual = new ObjectMapper().writeValueAsString(tc.load_out);
+                            // Parse from test file and dump back into a NestedText string
+                            Object obj = new NestedText().load(decodedBytes);
+                            String nestedTextDump = new NestedText().dump(obj);
+                            
+                            // Parse again and write to JSON to compare against expected
+                            Object obj2 = new NestedText().load(nestedTextDump);
+                            String expected = new ObjectMapper().writeValueAsString(tc.load_out);
+                            String actual = new ObjectMapper().writeValueAsString(obj2);
                             assertJsonEquals(expected, actual);
                         }
                     })
