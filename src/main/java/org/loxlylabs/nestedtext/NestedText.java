@@ -2,7 +2,8 @@ package org.loxlylabs.nestedtext;
 
 import java.io.*;
 import java.lang.reflect.Array;
-import java.nio.charset.StandardCharsets;
+import java.nio.ByteBuffer;
+import java.nio.charset.*;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Stream;
@@ -138,9 +139,16 @@ public class NestedText {
      * @throws IOException if an I/O error occurs while reading the file.
      */
     public Object load(File file) throws IOException {
+        CharsetDecoder decoder = StandardCharsets.UTF_8
+                .newDecoder()
+                .onMalformedInput(CodingErrorAction.REPORT)
+                .onUnmappableCharacter(CodingErrorAction.REPORT);
+
         try (InputStream is = new FileInputStream(file);
-             BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+             BufferedReader reader = new BufferedReader(new InputStreamReader(is, decoder))) {
               return load(reader.lines());
+        } catch (MalformedInputException ex) {
+            throw new NestedTextException("invalid start byte", ex);
         }
     }
 
@@ -154,6 +162,30 @@ public class NestedText {
      */
     public Object load(Path path) throws IOException {
         return load(path.toFile());
+    }
+
+    /**
+     * Loads (parses) NestedText content from a byte array.
+     *
+     * <p>This method decodes the byte array as UTF-8 with strict error handling.
+     * Malformed byte sequences will result in an exception.
+     *
+     * @param data The byte array containing NestedText data, encoded in UTF-8.
+     * @return A {@code Map<String, Object>}, {@code List<Object>}, {@code String}, or {@code null} if the content is empty.
+     * @throws NestedTextException if the byte array is not valid UTF-8 or if the decoded string is not valid NestedText.
+     */
+    public Object load(byte[] data) {
+        CharsetDecoder decoder = StandardCharsets.UTF_8
+                .newDecoder()
+                .onMalformedInput(CodingErrorAction.REPORT)
+                .onUnmappableCharacter(CodingErrorAction.REPORT);
+
+        try {
+            String text = decoder.decode(ByteBuffer.wrap(data)).toString();
+            return load(text);
+        } catch (CharacterCodingException e) {
+            throw new NestedTextException("invalid start byte", e);
+        }
     }
 
     /**

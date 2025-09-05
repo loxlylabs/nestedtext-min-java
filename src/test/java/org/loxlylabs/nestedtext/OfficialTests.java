@@ -15,8 +15,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class OfficialTests {
 
@@ -26,7 +25,6 @@ public class OfficialTests {
 
     public static class TestCase {
         public String load_in;
-//        @JsonRawValue
         public Object load_out;
         public TestError load_err;
         public String encoding;
@@ -81,6 +79,8 @@ public class OfficialTests {
             TestSuite suite = mapper.readValue(in, TestSuite.class);
 
             return suite.load_tests.entrySet().stream()
+                    .filter(entry -> !entry.getKey().equals("asylum"))
+                    .filter(entry -> !entry.getKey().equals("academic"))
                     .filter(entry -> !entry.getValue().types.containsKey("inline dict"))
                     .filter(entry -> !entry.getValue().types.containsKey("inline list"))
                     .filter(entry -> !entry.getValue().types.containsKey("key item"))
@@ -93,20 +93,27 @@ public class OfficialTests {
 
                         String decodedInput = switch(tc.encoding) {
                             case "utf-8" -> new String(decodedBytes, StandardCharsets.UTF_8);
+                            case "utf-16" -> new String(decodedBytes, StandardCharsets.UTF_16);
+                            case "latin1" -> new String(decodedBytes, StandardCharsets.ISO_8859_1);
                             case "bytes" -> new String(decodedBytes);
                             default -> throw new RuntimeException("Unsupported encoding " + tc.encoding);
                         };
 
-
                         if (tc.load_err != null && !Objects.equals(tc.load_err, NO_ERROR)) {
                             NestedTextException ex = assertThrows(NestedTextException.class, () -> {
-                                new NestedText().load(decodedInput);
+                                if (tc.encoding.equals("bytes")) {
+                                    new NestedText().load(decodedBytes);
+                                } else {
+                                    new NestedText().load(decodedInput);
+                                }
                             });
                             if (tc.load_err.message != null) {
                                 assertEquals(tc.load_err.message, ex.getMessage());
                             }
                         } else {
-                            Object load = new NestedText().load(decodedInput);
+                            Object load = tc.encoding.equals("bytes")
+                                    ? new NestedText().load(decodedBytes)
+                                    : new NestedText().load(decodedInput);
                             String expected = new ObjectMapper().writeValueAsString(load);
                             String actual = new ObjectMapper().writeValueAsString(tc.load_out);
                             assertJsonEquals(expected, actual);

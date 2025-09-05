@@ -20,7 +20,11 @@ class Parser {
         if (check(TokenType.INDENT)) {
             throw error(peek(), "top-level content must start in column 1.");
         }
-        return parseObject();
+        Object obj = parseObject();
+        if (!isAtEnd()) {
+            throw error(peek(), "expected end of file.");
+        }
+        return obj;
     }
 
     private Object parseObject() {
@@ -60,6 +64,12 @@ class Parser {
             }
             list.add(value);
         }
+        if (check(TokenType.KEY) || check(TokenType.GREATER)) {
+            throw error(peek(), "expected list item.");
+        }
+        if (check(TokenType.INDENT)) {
+            throw error(peek(), "invalid indentation.");
+        }
         return list;
     }
 
@@ -68,6 +78,9 @@ class Parser {
 
         while (match(TokenType.KEY)) {
             String key = (String)previous().literal;
+            if (dictionary.containsKey(key)) {
+                throw error(peek(), "duplicate key: " + key + ".");
+            }
             Object value;
             // Value for this list item is a new object
             if (check(TokenType.NEWLINE) && checkNext(TokenType.INDENT)) {
@@ -85,6 +98,12 @@ class Parser {
                 match(TokenType.NEWLINE);
             }
             dictionary.put(key, value);
+        }
+        if (check(TokenType.DASH) || check(TokenType.GREATER)) {
+            throw error(peek(), "expected dictionary item.");
+        }
+        if (check(TokenType.INDENT)) {
+            throw error(peek(), "invalid indentation.");
         }
         return dictionary;
     }
@@ -106,6 +125,12 @@ class Parser {
             if (!match(TokenType.NEWLINE)) {
                 break;
             }
+        }
+        if (check(TokenType.DASH) || check(TokenType.KEY)) {
+            throw error(peek(), "expected string.");
+        }
+        if (check(TokenType.INDENT)) {
+            throw error(peek(), "invalid indentation.");
         }
         return sb.toString();
     }

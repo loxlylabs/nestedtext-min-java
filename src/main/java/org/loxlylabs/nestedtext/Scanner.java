@@ -75,10 +75,14 @@ class Scanner {
 
     private List<Token> processListLine() {
         final int keyStart = current;
-        List<Token> tokens = new ArrayList<>();
         if (peek() == ' ') {
             advance();
+        } else {
+            if (!isEOL()) {
+                return processDictionaryLine();
+            }
         }
+        List<Token> tokens = new ArrayList<>();
         tokens.add(createToken(TokenType.DASH, keyStart + 1));
         if (!isEOL()) {
             tokens.add(processString());
@@ -88,10 +92,14 @@ class Scanner {
 
     private List<Token> processMultilineStringLine() {
         final int keyStart = current;
-        List<Token> tokens = new ArrayList<>();
         if (peek() == ' ') {
             advance();
+        } else {
+            if (!isEOL()) {
+                return processDictionaryLine();
+            }
         }
+        List<Token> tokens = new ArrayList<>();
         tokens.add(createToken(TokenType.GREATER, keyStart + 1));
         if (!isEOL()) {
             tokens.add(processString());
@@ -112,6 +120,22 @@ class Scanner {
         return tokens;
     }
 
+    // While Java has a stripTrailing method, it does not encompass
+    // non-breaking spaces and others.
+    private static String stripTrailingWhitespace(String s) {
+        int end = s.length();
+        while (end > 0 && isWhitespace(s.charAt(end - 1))) {
+            end--;
+        }
+        return s.substring(0, end);
+    }
+
+    private static boolean isWhitespace(int c) {
+        // Match Unicode White_Space characters
+        return Character.getType(c) == Character.SPACE_SEPARATOR
+                || Character.isWhitespace(c);
+    }
+
     private Token processKey() {
         final int keyStart = current;
 
@@ -130,7 +154,7 @@ class Scanner {
                         advance();
                     }
                     // whitespace before the colon is trimmed
-                    return createToken(TokenType.KEY, value.stripTrailing(), keyStart + 1);
+                    return createToken(TokenType.KEY, stripTrailingWhitespace(value), keyStart + 1);
                 }
             } else {
                 advance();
@@ -144,6 +168,35 @@ class Scanner {
         return createToken(TokenType.STRING, value, current + 1);
     }
 
+    private String whiteSpaceToString(char c) {
+        return switch (c) {
+            case '\t' -> "'\\t'";
+            case '\u00A0' -> "'\\xa0' (NO-BREAK SPACE)";
+            case '\u1680' -> "'\\u1680' (OGHAM SPACE MARK)";
+            case '\u2000' -> "'\\u2000' (EN QUAD)";
+            case '\u2001' -> "'\\u2001' (EM QUAD)";
+            case '\u2002' -> "'\\u2002' (EN SPACE)";
+            case '\u2003' -> "'\\u2003' (EM SPACE)";
+            case '\u2004' -> "'\\u2004' (THREE-PER-EM SPACE)";
+            case '\u2005' -> "'\\u2005' (FOUR-PER-EM SPACE)";
+            case '\u2006' -> "'\\u2006' (SIX-PER-EM SPACE)";
+            case '\u2007' -> "'\\u2007' (FIGURE SPACE)";
+            case '\u2008' -> "'\\u2008' (PUNCTUATION SPACE)";
+            case '\u2009' -> "'\\u2009' (THIN SPACE)";
+            case '\u200A' -> "'\\u200A' (HAIR SPACE)";
+            case '\u202F' -> "'\\u202F' (NARROW NO-BREAK SPACE)";
+            case '\u205F' -> "'\\u205F' (MEDIUM MATHEMATICAL SPACE)";
+            case '\u3000' -> "'\\u3000' (IDEOGRAPHIC SPACE)";
+            default -> {
+                if (Character.isWhitespace(c)) {
+                    yield String.format("'\\u%04X' (WHITESPACE)", (int) c);
+                } else {
+                    yield String.format("'\\u%04X'", (int) c);
+                }
+            }
+        };
+    }
+
     private List<Token> handleIndentation() {
         List<Token> tokens = new ArrayList<>();
 
@@ -153,8 +206,10 @@ class Scanner {
             advance();
         }
 
-        if (peek() == '\t') {
-            throw new NestedTextException("invalid character in indentation: '\\t'.", lineNumber, current + 1);
+        if (isWhitespace(peek())) {
+            throw new NestedTextException("invalid character in indentation: "
+                    + whiteSpaceToString(peek())
+                    + ".", lineNumber, current + 1);
         }
 
         if (peek() == '#' || isEOL()) {

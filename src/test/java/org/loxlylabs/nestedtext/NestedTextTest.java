@@ -276,8 +276,44 @@ class NestedTextTest {
         void shouldThrowOnTabIndentation() {
             String input = "key:\n\t- list item";
             NestedTextException ex = assertThrows(NestedTextException.class, () -> nt.load(input));
-            assertEquals("Error at line 2, column 1: Tabs are not allowed for indentation; use spaces instead.", ex.getMessage());
+            assertEquals("invalid character in indentation: '\\t'.", ex.getMessage());
             assertEquals(2, ex.getLine());
+        }
+
+        @Test
+        void shouldThrowOnStringsAndListsSameIndentation() {
+            String input = """
+                    > Should not allow multi-line strings
+                    > and lists at the same level
+                    - of indentation.
+                    """;
+            NestedTextException ex = assertThrows(NestedTextException.class, () -> nt.load(input));
+            assertEquals("expected string.", ex.getMessage());
+            assertEquals(3, ex.getLine());
+        }
+
+        @Test
+        void shouldThrowOnStringsAndDictionaryItemsWithSameIndentation() {
+            String input = """
+                    > Should not allow multi-line strings
+                    > and dictionary itmes at the same level
+                    of: indentation
+                    """;
+            NestedTextException ex = assertThrows(NestedTextException.class, () -> nt.load(input));
+            assertEquals("expected string.", ex.getMessage());
+            assertEquals(3, ex.getLine());
+        }
+
+        @Test
+        void shouldThrowWrongMultilineStringIndentation() {
+            String input = """
+                    > Should not allow multi-line strings
+                    > with varying levels
+                      > of indentation.
+                    """;
+            NestedTextException ex = assertThrows(NestedTextException.class, () -> nt.load(input));
+            assertEquals("invalid indentation.", ex.getMessage());
+            assertEquals(3, ex.getLine());
         }
 
         @Test
@@ -288,7 +324,7 @@ class NestedTextTest {
                       key3: value
                     """;
             NestedTextException ex = assertThrows(NestedTextException.class, () -> nt.load(input));
-            assertEquals("Error at line 3, column 3: Mismatched indentation level.", ex.getMessage());
+            assertEquals("invalid indentation, partial dedent.", ex.getMessage());
             assertEquals(3, ex.getLine());
         }
 
@@ -296,7 +332,7 @@ class NestedTextTest {
         void shouldThrowOnTopLevelIndent() {
             String input = "  key: value";
             NestedTextException ex = assertThrows(NestedTextException.class, () -> nt.load(input));
-            assertEquals("Error at line 1: Top-level content cannot be indented.", ex.getMessage());
+            assertEquals("top-level content must start in column 1.", ex.getMessage());
         }
 
         @Test
@@ -306,7 +342,7 @@ class NestedTextTest {
             // following it and no colon is not.
             String input = "a key but no colon";
             NestedTextException ex = assertThrows(NestedTextException.class, () -> nt.load(input));
-            assertEquals("Error at line 1, column 1: Unrecognized line structure, couldn't find a key.", ex.getMessage());
+            assertEquals("unrecognized line.", ex.getMessage());
         }
     }
 }
