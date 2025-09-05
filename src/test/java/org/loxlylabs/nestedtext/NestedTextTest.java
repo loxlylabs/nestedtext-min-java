@@ -277,7 +277,7 @@ class NestedTextTest {
             String input = "key:\n\t- list item";
             NestedTextException ex = assertThrows(NestedTextException.class, () -> nt.load(input));
             assertEquals("invalid character in indentation: '\\t'.", ex.getMessage());
-            assertEquals(2, ex.getLine());
+            assertEquals(1, ex.getLine());
         }
 
         @Test
@@ -289,7 +289,7 @@ class NestedTextTest {
                     """;
             NestedTextException ex = assertThrows(NestedTextException.class, () -> nt.load(input));
             assertEquals("expected string.", ex.getMessage());
-            assertEquals(3, ex.getLine());
+            assertEquals(2, ex.getLine());
         }
 
         @Test
@@ -301,7 +301,7 @@ class NestedTextTest {
                     """;
             NestedTextException ex = assertThrows(NestedTextException.class, () -> nt.load(input));
             assertEquals("expected string.", ex.getMessage());
-            assertEquals(3, ex.getLine());
+            assertEquals(2, ex.getLine());
         }
 
         @Test
@@ -313,7 +313,7 @@ class NestedTextTest {
                     """;
             NestedTextException ex = assertThrows(NestedTextException.class, () -> nt.load(input));
             assertEquals("invalid indentation.", ex.getMessage());
-            assertEquals(3, ex.getLine());
+            assertEquals(2, ex.getLine());
         }
 
         @Test
@@ -325,7 +325,7 @@ class NestedTextTest {
                     """;
             NestedTextException ex = assertThrows(NestedTextException.class, () -> nt.load(input));
             assertEquals("invalid indentation, partial dedent.", ex.getMessage());
-            assertEquals(3, ex.getLine());
+            assertEquals(2, ex.getLine());
         }
 
         @Test

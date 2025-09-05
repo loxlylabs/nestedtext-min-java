@@ -68,13 +68,13 @@ class Scanner {
         };
         tokens.addAll(newTokens);
 
-        tokens.add(createToken(TokenType.NEWLINE, current + 1));
+        tokens.add(createToken(TokenType.NEWLINE, current));
 
         return tokens;
     }
 
     private List<Token> processListLine() {
-        final int keyStart = current;
+        final int keyStart = current - 1;
         if (peek() == ' ') {
             advance();
         } else {
@@ -83,7 +83,7 @@ class Scanner {
             }
         }
         List<Token> tokens = new ArrayList<>();
-        tokens.add(createToken(TokenType.DASH, keyStart + 1));
+        tokens.add(createToken(TokenType.DASH, keyStart));
         if (!isEOL()) {
             tokens.add(processString());
         }
@@ -91,7 +91,7 @@ class Scanner {
     }
 
     private List<Token> processMultilineStringLine() {
-        final int keyStart = current;
+        final int keyStart = current - 1;
         if (peek() == ' ') {
             advance();
         } else {
@@ -100,7 +100,7 @@ class Scanner {
             }
         }
         List<Token> tokens = new ArrayList<>();
-        tokens.add(createToken(TokenType.GREATER, keyStart + 1));
+        tokens.add(createToken(TokenType.GREATER, keyStart));
         if (!isEOL()) {
             tokens.add(processString());
         }
@@ -154,18 +154,18 @@ class Scanner {
                         advance();
                     }
                     // whitespace before the colon is trimmed
-                    return createToken(TokenType.KEY, stripTrailingWhitespace(value), keyStart + 1);
+                    return createToken(TokenType.KEY, stripTrailingWhitespace(value), keyStart);
                 }
             } else {
                 advance();
             }
         }
-        throw new NestedTextException("unrecognized line.", lineNumber, keyStart + 1);
+        throw new NestedTextException("unrecognized line.", lineNumber - 1, keyStart);
     }
 
     private Token processString() {
         String value = curLine.substring(current);
-        return createToken(TokenType.STRING, value, current + 1);
+        return createToken(TokenType.STRING, value, current);
     }
 
     private String whiteSpaceToString(char c) {
@@ -209,7 +209,7 @@ class Scanner {
         if (isWhitespace(peek())) {
             throw new NestedTextException("invalid character in indentation: "
                     + whiteSpaceToString(peek())
-                    + ".", lineNumber, current + 1);
+                    + ".", lineNumber - 1, current);
         }
 
         if (peek() == '#' || isEOL()) {
@@ -221,10 +221,10 @@ class Scanner {
 
         if (indent > lastIndent) {
             indentStack.push(indent);
-            tokens.add(createToken(TokenType.INDENT, 0));
+            tokens.add(createToken(TokenType.INDENT, indent));
         } else if (indent < lastIndent) {
             if (!indentStack.contains(indent)) {
-                throw new NestedTextException("invalid indentation, partial dedent.", lineNumber, current + 1);
+                throw new NestedTextException("invalid indentation, partial dedent.", lineNumber - 1, current);
             }
             while (indent < indentStack.peek()) {
                 indentStack.pop();
@@ -256,6 +256,6 @@ class Scanner {
     }
 
     private Token createToken(TokenType type, Object literal, int column) {
-        return new Token(type, literal, lineNumber, column);
+        return new Token(type, literal, lineNumber - 1, column);
     }
 }

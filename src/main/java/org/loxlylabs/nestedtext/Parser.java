@@ -18,7 +18,7 @@ class Parser {
         // A NestedText document can be a dictionary, a list, a multiline string, or empty.
         if (isAtEnd() || peek().type == TokenType.EOF) return null;
         if (check(TokenType.INDENT)) {
-            throw error(peek(), "top-level content must start in column 1.");
+            throw new NestedTextException("top-level content must start in column 1.", peek().line, 0);
         }
         Object obj = parseObject();
         if (!isAtEnd()) {
@@ -79,7 +79,7 @@ class Parser {
         while (match(TokenType.KEY)) {
             String key = (String)previous().literal;
             if (dictionary.containsKey(key)) {
-                throw error(peek(), "duplicate key: " + key + ".");
+                throw error(previous(), "duplicate key: " + key + ".");
             }
             Object value;
             // Value for this list item is a new object

@@ -24,8 +24,14 @@ public class NestedTextException extends RuntimeException {
 
     NestedTextException(String message, Throwable cause) {
         super(message, cause);
-        this.line = -1;
-        this.column = -1;
+        this.line = 0;
+        this.column = 0;
+    }
+
+    NestedTextException(String message, Throwable cause, int line, int column) {
+        super(message, cause);
+        this.line = line;
+        this.column = column;
     }
 
     /**

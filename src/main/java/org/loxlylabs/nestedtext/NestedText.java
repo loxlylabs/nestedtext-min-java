@@ -148,7 +148,8 @@ public class NestedText {
              BufferedReader reader = new BufferedReader(new InputStreamReader(is, decoder))) {
               return load(reader.lines());
         } catch (MalformedInputException ex) {
-            throw new NestedTextException("invalid start byte", ex);
+            int col = ex.getInputLength();
+            throw new NestedTextException("invalid start byte", ex, 0, col);
         }
     }
 
@@ -184,7 +185,8 @@ public class NestedText {
             String text = decoder.decode(ByteBuffer.wrap(data)).toString();
             return load(text);
         } catch (CharacterCodingException e) {
-            throw new NestedTextException("invalid start byte", e);
+            int col = e instanceof MalformedInputException mal ? mal.getInputLength() : 0;
+            throw new NestedTextException("invalid start byte", e, 0, col);
         }
     }
 

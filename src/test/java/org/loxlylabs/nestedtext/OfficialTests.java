@@ -1,6 +1,5 @@
 package org.loxlylabs.nestedtext;
 
-import com.fasterxml.jackson.annotation.JsonRawValue;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -109,6 +108,19 @@ public class OfficialTests {
                             });
                             if (tc.load_err.message != null) {
                                 assertEquals(tc.load_err.message, ex.getMessage());
+                            }
+                            assertEquals(tc.load_err.lineno, ex.getLine());
+
+                            // DEVIATION FROM OFFICIAL LIB
+                            // ---------------------------
+                            // 1. Official NestedText reports expected indentation
+                            //    whereas we report actual indentation as the col.
+                            // 2. amendment test reports column where encoding found
+                            //    invalid character. In Java, this does not seem
+                            //    simple to obtain.
+                            if (entry.getKey().equals("amendment")
+                                    || !ex.getMessage().contains("invalid indentation")) {
+                                assertEquals(tc.load_err.colno, ex.getColumn());
                             }
                         } else {
                             Object load = tc.encoding.equals("bytes")
