@@ -78,7 +78,6 @@ public class OfficialTests {
             TestSuite suite = mapper.readValue(in, TestSuite.class);
 
             return suite.load_tests.entrySet().stream()
-                    .filter(entry -> !entry.getKey().equals("asylum"))
                     .filter(entry -> !entry.getKey().equals("academic"))
                     .filter(entry -> !entry.getValue().types.containsKey("inline dict"))
                     .filter(entry -> !entry.getValue().types.containsKey("inline list"))
@@ -90,21 +89,9 @@ public class OfficialTests {
 
                         byte[] decodedBytes = Base64.getDecoder().decode(tc.load_in);
 
-                        String decodedInput = switch(tc.encoding) {
-                            case "utf-8" -> new String(decodedBytes, StandardCharsets.UTF_8);
-                            case "utf-16" -> new String(decodedBytes, StandardCharsets.UTF_16);
-                            case "latin1" -> new String(decodedBytes, StandardCharsets.ISO_8859_1);
-                            case "bytes" -> new String(decodedBytes);
-                            default -> throw new RuntimeException("Unsupported encoding " + tc.encoding);
-                        };
-
                         if (tc.load_err != null && !Objects.equals(tc.load_err, NO_ERROR)) {
                             NestedTextException ex = assertThrows(NestedTextException.class, () -> {
-                                if (tc.encoding.equals("bytes")) {
-                                    new NestedText().load(decodedBytes);
-                                } else {
-                                    new NestedText().load(decodedInput);
-                                }
+                                new NestedText().load(decodedBytes);
                             });
                             if (tc.load_err.message != null) {
                                 assertEquals(tc.load_err.message, ex.getMessage());
@@ -113,16 +100,16 @@ public class OfficialTests {
 
                             // DEVIATION FROM OFFICIAL LIB
                             // ---------------------------
-                            // 1. amendment test reports column where encoding found
-                            //    invalid character. In Java, this does not seem
-                            //    simple to obtain.
-                            if (tc.load_err.colno != null && !entry.getKey().equals("amendment")) {
+                            // amendment and asylum tests reports column where
+                            // encoding found invalid character. In Java, this
+                            // does not seem simple to obtain.
+                            if (tc.load_err.colno != null
+                                    && !entry.getKey().equals("asylum")
+                                    && !entry.getKey().equals("amendment")) {
                                 assertEquals(tc.load_err.colno, ex.getColumn());
                             }
                         } else {
-                            Object load = tc.encoding.equals("bytes")
-                                    ? new NestedText().load(decodedBytes)
-                                    : new NestedText().load(decodedInput);
+                            Object load = new NestedText().load(decodedBytes);
                             String expected = new ObjectMapper().writeValueAsString(load);
                             String actual = new ObjectMapper().writeValueAsString(tc.load_out);
                             assertJsonEquals(expected, actual);
