@@ -78,7 +78,6 @@ public class OfficialTests {
             TestSuite suite = mapper.readValue(in, TestSuite.class);
 
             return suite.load_tests.entrySet().stream()
-                    .filter(entry -> !entry.getKey().equals("academic"))
                     .filter(entry -> !entry.getValue().types.containsKey("inline dict"))
                     .filter(entry -> !entry.getValue().types.containsKey("inline list"))
                     .filter(entry -> !entry.getValue().types.containsKey("key item"))
