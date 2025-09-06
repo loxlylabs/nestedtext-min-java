@@ -273,6 +273,26 @@ class NestedTextTest {
     class ErrorTests {
 
         @Test
+        void dictKeysCannotStartWithBracket() {
+            String input = """
+                    [key: value
+                    """;
+            NestedTextException ex = assertThrows(NestedTextException.class, () -> nt.load(input));
+            assertEquals("key may not start with '['.", ex.getMessage());
+            assertEquals(0, ex.getLine());
+        }
+
+        @Test
+        void dictKeysCannotStartWithBrace() {
+            String input = """
+                    {key: value
+                    """;
+            NestedTextException ex = assertThrows(NestedTextException.class, () -> nt.load(input));
+            assertEquals("key may not start with '{'.", ex.getMessage());
+            assertEquals(0, ex.getLine());
+        }
+        
+        @Test
         void shouldThrowOnTabIndentation() {
             String input = "key:\n\t- list item";
             NestedTextException ex = assertThrows(NestedTextException.class, () -> nt.load(input));

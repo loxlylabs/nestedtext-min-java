@@ -153,6 +153,16 @@ class Scanner {
                     if (peek() == ' ') {
                         advance();
                     }
+
+                    if (!value.isEmpty()) {
+                        char firstChar = value.charAt(0);
+                        if (firstChar == '[' || firstChar == '{') {
+                            throw new NestedTextException("key may not start with '" + firstChar + "'.",
+                                    lineNumber - 1,
+                                    keyStart);
+                        }
+                    }
+
                     // whitespace before the colon is trimmed
                     return createToken(TokenType.KEY, stripTrailingWhitespace(value), keyStart);
                 }
