@@ -229,7 +229,30 @@ public class NestedText {
             obj = toNestedTextCompatible(obj);
         }
         dumpValue(obj, sb, 0);
+        // internal dump methods always add line separator
+        removeLastLineSeparator(sb);
         return sb.toString();
+    }
+
+    /**
+     * Efficiently removes the last line separator.
+     *
+     * @param sb StringBuilder to remove last line separator from.
+     */
+    private void removeLastLineSeparator(StringBuilder sb) {
+        // Be safe even if we assume it always ends in eol
+        if (sb.length() >= eol.length()) {
+            // avoid expensive substring since string may be large
+            int startOfSeparator = sb.length() - eol.length();
+
+            for (int i = 0; i < eol.length(); i++) {
+                if (sb.charAt(startOfSeparator + i) != eol.charAt(i)) {
+                    // does not end with separator, just return
+                    return;
+                }
+            }
+            sb.setLength(startOfSeparator);
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -322,12 +345,14 @@ public class NestedText {
     private void dumpString(String s, StringBuilder sb, int indent) {
         String indentStr = " ".repeat(indent);
         if (s.contains(eol)) {
-            // multiline string
-            for (String line : s.split(eol, -1)) {
+            String[] lines = s.split(eol, -1);
+            for (String line : lines) {
                 sb.append(indentStr)
-                        .append("> ")
-                        .append(line)
-                        .append(eol);
+                        .append(">");
+                if (!line.isEmpty()) {
+                    sb.append(" ");
+                }
+                sb.append(line).append(eol);
             }
         } else {
             if (indent == 0) {

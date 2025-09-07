@@ -128,6 +128,17 @@ class NestedTextTest {
             assertEquals("{key: value}", result.get("inline_dict"));
             assertEquals("[item1, item2]", result.get("inline_list"));
         }
+
+        @Test
+        void shouldIgnoreLastNewlineInStrings() {
+            // > a⏎
+            // > b⏎
+            // > c⏎ <-- ignore
+            var input1 = "> a\n> b\n> c";
+            var input2 = "> a\n> b\n> c\n";
+            assertEquals("a\nb\nc", nt.load(input1));
+            assertEquals("a\nb\nc", nt.load(input2));
+        }
     }
 
     @Nested
@@ -161,8 +172,7 @@ class NestedTextTest {
 
             String expected = """
                     name: John Doe
-                    planet: Proxima Centauri b
-                    """;
+                    planet: Proxima Centauri b""";
             String result = nt.dump(data);
             assertEquals(expected, result);
         }
@@ -173,10 +183,39 @@ class NestedTextTest {
             String expected = """
                     - one
                     - two
-                    - three
-                    """;
+                    - three""";
             String result = nt.dump(data);
             assertEquals(expected, result);
+        }
+
+        @Test
+        void shouldDumpString() {
+            String data = """
+                    one
+                    two
+                    three""";
+            String expected = """
+                    > one
+                    > two
+                    > three""";
+            String result = nt.dump(data);
+            assertEquals(expected, result);
+        }
+
+        @Test
+        void shouldHandleNewlineProperly() {
+            var input = "a\nb\nc";
+            String actual = nt.dump(input);
+            var expected = "> a\n> b\n> c";
+            assertEquals(expected, actual);
+        }
+
+        @Test
+        void shouldDumpEmptyString() {
+            String data = "\n";
+            String expected = ">\n>";
+            String actual = nt.dump(data);
+            assertEquals(expected, actual);
         }
 
         @Test
@@ -197,8 +236,7 @@ class NestedTextTest {
                       city: Anytown
                     notes:
                       > First line.
-                      > Second line.
-                    """;
+                      > Second line.""";
 
             String result = nt.indent(2)
                     .dump(person);
@@ -217,8 +255,8 @@ class NestedTextTest {
                     children:
                         - Random
                         - Fenchurch
-                    active: true
-                    """.replace("\n", System.lineSeparator());
+                    active: true"""
+                    .replace("\n", System.lineSeparator());
 
             String result = nt.dump(person);
             assertEquals(expected, result);
@@ -232,8 +270,7 @@ class NestedTextTest {
 
             String expected = """
                     companyName: Acme
-                    yearFounded: 2025
-                    """;
+                    yearFounded: 2025""";
 
             String result = nt.dump(company);
             assertEquals(expected.trim(), result.trim());
@@ -261,8 +298,7 @@ class NestedTextTest {
                     primitive_array:
                         - 1
                         - 2
-                        - 3
-                    """;
+                        - 3""";
 
             String result = nt.dump(data);
             assertEquals(expected, result);

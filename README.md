@@ -63,7 +63,7 @@ Maven:
 <dependency>
   <groupId>org.loxlylabs</groupId>
   <artifactId>nestedtext-min-java</artifactId>
-  <version>0.2.5</version>
+  <version>0.3.0</version>
 </dependency>
 ```
 
