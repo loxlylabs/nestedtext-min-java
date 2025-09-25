@@ -238,8 +238,8 @@ class NestedTextTest {
                       > First line.
                       > Second line.""";
 
-            String result = nt.indent(2)
-                    .dump(person);
+            String result = nt
+                    .dump(person, new DumpOptions(System.lineSeparator(), 2, true));
             assertEquals(expected, result);
         }
 
