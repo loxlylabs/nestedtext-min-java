@@ -3,13 +3,13 @@ package org.loxlylabs.nestedtext;
 import java.lang.reflect.Array;
 import java.util.*;
 
-class NestedTextSerializer {
+class SerializationContext {
 
     private final Map<Class<?>, Serializer<?>> serializers = new HashMap<>();
     private final DumpOptions options;
     private final Map<Class<?>, TypeMappingRules> typeMappingRules;
 
-    public NestedTextSerializer(DumpOptions options, Map<Class<?>, Serializer<?>> serializers, Map<Class<?>, TypeMappingRules> typeMappingRules) {
+    public SerializationContext(DumpOptions options, Map<Class<?>, Serializer<?>> serializers, Map<Class<?>, TypeMappingRules> typeMappingRules) {
         this.options = options;
         this.serializers.putAll(serializers);
         this.typeMappingRules = typeMappingRules;

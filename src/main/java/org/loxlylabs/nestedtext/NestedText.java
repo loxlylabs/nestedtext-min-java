@@ -180,7 +180,7 @@ public class NestedText {
      * @throws NestedTextException if an unsupported object type is encountered or a reflection error occurs.
      */
     public String dump(Object obj, DumpOptions options) {
-        NestedTextSerializer serializer = new NestedTextSerializer(options, serializers, typeMappingRules);
+        SerializationContext serializer = new SerializationContext(options, serializers, typeMappingRules);
         return serializer.serialize(obj);
     }
 
