@@ -24,7 +24,7 @@ class DeserializationTest {
                 active: true
                 """;
             var expected = new BasicRecord(5, "Alice", 1.5, true);
-            assertEquals(expected, new NestedText().load(nt, BasicRecord.class));
+            assertEquals(expected, NestedTexts.from(nt).as(BasicRecord.class));
         }
 
         record AddressRecord(String street, String city, String state, String zip) {}
@@ -56,7 +56,7 @@ class DeserializationTest {
             var expected2 = new BasicRecord(12, "Bob", 2.0, false);
             var expectedAddress = new AddressRecord("123 Main Street", "New York", "NY", "10001");
             var expected = new ParentRecord(expectedAddress, List.of(expected1, expected2));
-            assertEquals(expected, new NestedText().load(nt, ParentRecord.class));
+            assertEquals(expected, NestedTexts.from(nt).as(ParentRecord.class));
         }
 
         @Test
@@ -71,7 +71,7 @@ class DeserializationTest {
                 """;
             var expectedAddress = new AddressRecord("123 Main Street", "New York", "NY", "10001");
             var expected = new ParentRecord(expectedAddress, List.of());
-            assertEquals(expected, new NestedText().load(nt, ParentRecord.class));
+            assertEquals(expected, NestedTexts.from(nt).as(ParentRecord.class));
         }
 
         @Test
@@ -86,7 +86,7 @@ class DeserializationTest {
                     active: true
                 """;
             var expected = new ParentRecord(null, List.of(new BasicRecord(5, "Alice", 1.5, true)));
-            assertEquals(expected, new NestedText().load(nt, ParentRecord.class));
+            assertEquals(expected, NestedTexts.from(nt).as(ParentRecord.class));
         }
 
         public record User(String name, String address, String phone) {}
@@ -107,7 +107,7 @@ class DeserializationTest {
                         name: Bob
                         phone: (555) 123-1234
                     """;
-            Team actual = new NestedText().load(nt, Team.class);
+            Team actual = NestedTexts.from(nt).as(Team.class);
             assertEquals(new Team("Developers", List.of(
                     new User("Alice", "123 Main St\nNew York, NY 10001", null),
                     new User("Bob", null, "(555) 123-1234")
@@ -126,7 +126,7 @@ class DeserializationTest {
                       name: Bob
                       phone: (555) 123-1234
                     """;
-            List<User> actual = new NestedText().load(nt, new TypeReference<>() {});
+            List<User> actual = NestedTexts.from(nt).as(new TypeReference<>() {});
             assertEquals(List.of(
                     new User("Alice", "123 Main St\nNew York, NY 10001", null),
                     new User("Bob", null, "(555) 123-1234")
@@ -197,13 +197,12 @@ class DeserializationTest {
 
         @Test
         void testBasicPojo() {
-            NestedText nt = new NestedText();
-            BasicPojo actual = nt.load("""
+            BasicPojo actual = NestedTexts.from("""
                     age: 5
                     name: Alice
                     weight: 1.5
                     active: true
-                    """, BasicPojo.class);
+                    """).as(BasicPojo.class);
             var expected = new BasicPojo();
             expected.setAge(5);
             expected.setName("Alice");
@@ -269,23 +268,23 @@ class DeserializationTest {
 
         @Test
         void testNoDefaultConstructor() {
-            NestedText nt = new NestedText();
-            nt.registerDeserializer(NoDefaultConstructor.class, (value, context) -> {
-                if (!(value instanceof Map<?,?> m)) {
-                    throw new RuntimeException("Not a Map: " + value.getClass().getSimpleName());
-                }
-                Integer age = context.convert(m.get("age"), Integer.class);
-                String name = context.convert(m.get("name"), String.class);
-                Double weight = context.convert(m.get("weight"), Double.class);
-                Boolean active = context.convert(m.get("active"), Boolean.class);
-                return new NoDefaultConstructor(age, name, weight, active);
-            });
-            NoDefaultConstructor actual = nt.load("""
+            NestedText nt = NestedText.builder()
+                    .registerDeserializer(NoDefaultConstructor.class, (value, context) -> {
+                        if (!(value instanceof Map<?, ?> m)) {
+                            throw new RuntimeException("Not a Map: " + value.getClass().getSimpleName());
+                        }
+                        Integer age = context.convert(m.get("age"), Integer.class);
+                        String name = context.convert(m.get("name"), String.class);
+                        Double weight = context.convert(m.get("weight"), Double.class);
+                        Boolean active = context.convert(m.get("active"), Boolean.class);
+                        return new NoDefaultConstructor(age, name, weight, active);
+                    }).build();
+            NoDefaultConstructor actual = nt.from("""
                     age: 5
                     name: Alice
                     weight: 1.5
                     active: true
-                    """, NoDefaultConstructor.class);
+                    """).as(NoDefaultConstructor.class);
             var expected = new NoDefaultConstructor(5, "Alice", 1.5, true);
             assertEquals(expected, actual);
         }
@@ -359,7 +358,7 @@ class DeserializationTest {
                   -
                     name: alice
                 """;
-            PojoWithMapAndList obj = new NestedText().load(content, PojoWithMapAndList.class);
+            PojoWithMapAndList obj = NestedTexts.from(content).as(PojoWithMapAndList.class);
             assertEquals("23 Main St\nNew York, NY 10001", obj.getFoo());
         }
     }
@@ -370,23 +369,23 @@ class DeserializationTest {
         @Test
         void testListRoot() {
             TypeReference<List<Integer>> typeRef = new TypeReference<>() {};
-            List<Integer> numbers = new NestedText().load("""
+            List<Integer> numbers = NestedTexts.from("""
                     - 5
                     - 4
                     - 1
                     - 9
-                    """, typeRef);
+                    """).as(typeRef);
             assertEquals(List.of(5,4,1,9), numbers);
         }
 
         @Test
         void testMapRoot() {
-            Map<Integer, Double> numberMap = new NestedText().load("""
+            Map<Integer, Double> numberMap = NestedTexts.from("""
                     5: 3.14
                     4: 5
                     1: 8.2
                     9: 2.1
-                    """, new TypeReference<>() {});
+                    """).as(new TypeReference<>() {});
             assertEquals(Map.of(5, 3.14,
                     4, 5.0,
                     1, 8.2,
@@ -395,11 +394,28 @@ class DeserializationTest {
 
         @Test
         void testStringRoot() {
-            String address = new NestedText().load("""
+            String address = NestedTexts.from("""
                     > 123 Main Street
                     > New York, NY 10001
-                    """, String.class);
+                    """).as(String.class);
             assertEquals("123 Main Street\nNew York, NY 10001", address);
+        }
+    }
+
+    @Nested
+    class RenameFields {
+        record Person(int age, String fullName) {}
+
+        @Test
+        void testRenameField() {
+            String content = """
+                name: Alice Smith
+                age: 20
+                """;
+            NestedText nt = NestedText.builder().forType(Person.class, type -> {
+                type.renameField("fullName").to("name");
+            }).build();
+            assertEquals(new Person(20, "Alice Smith"), nt.from(content).as(Person.class));
         }
     }
 }

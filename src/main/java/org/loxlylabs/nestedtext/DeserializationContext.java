@@ -28,6 +28,7 @@ import java.util.function.Function;
 public class DeserializationContext {
 
     private final Map<Class<?>, Deserializer<?>> customDeserializers;
+    private final Map<Class<?>, TypeMappingRules> typeMappingRules;
 
     private static final Map<Class<?>, Class<?>> PRIMITIVE_WRAPPER_MAP = Map.of(
             boolean.class, Boolean.class,
@@ -64,8 +65,11 @@ public class DeserializationContext {
 
     /**
      * Creates a new context with no custom deserializers.
+     *
+     * @param typeMappingRules the type specific rules for deserialization
      */
-    public DeserializationContext() {
+    public DeserializationContext(Map<Class<?>, TypeMappingRules> typeMappingRules) {
+        this.typeMappingRules = typeMappingRules;
         this.customDeserializers = new HashMap<>();
     }
 
@@ -73,10 +77,12 @@ public class DeserializationContext {
     /**
      * Creates a new context with the given custom deserializers.
      *
-     * @param customDeserializers   A map of type-to-deserializer mappings to use for conversion.
+     * @param customDeserializers A map of type-to-deserializer mappings to use for conversion.
+     * @param typeMappingRules the type specific rules for deserialization
      */
-    public DeserializationContext(Map<Class<?>, Deserializer<?>> customDeserializers) {
+    public DeserializationContext(Map<Class<?>, Deserializer<?>> customDeserializers, Map<Class<?>, TypeMappingRules> typeMappingRules) {
         this.customDeserializers = new HashMap<>(customDeserializers);
+        this.typeMappingRules = typeMappingRules;
     }
 
     /**
@@ -269,6 +275,7 @@ public class DeserializationContext {
         RecordComponent[] components = recordClass.getRecordComponents();
         Object[] constructorArgs = new Object[components.length];
         Class<?>[] constructorParamTypes = new Class<?>[components.length];
+        TypeMappingRules typeMappingRulesForClass = typeMappingRules.get(recordClass);
 
         for (int i = 0; i < components.length; i++) {
             RecordComponent component = components[i];
@@ -277,7 +284,10 @@ public class DeserializationContext {
             Type genericType = component.getGenericType();
 
             constructorParamTypes[i] = type;
-            Object value = sourceMap.get(name);
+            String nestedTextFieldName = Optional.ofNullable(typeMappingRulesForClass)
+                    .map(it -> it.renameFromJava().get(name))
+                    .orElse(name);
+            Object value = sourceMap.get(nestedTextFieldName);
 
             constructorArgs[i] = convertRecursively(value, type, genericType);
         }
@@ -290,11 +300,15 @@ public class DeserializationContext {
         Constructor<T> constructor = pojoClass.getDeclaredConstructor();
         constructor.setAccessible(true);
         T instance = constructor.newInstance();
+        TypeMappingRules typeMappingRulesForClass = typeMappingRules.get(pojoClass);
 
         for (Field field : pojoClass.getDeclaredFields()) {
             if (sourceMap.containsKey(field.getName())) {
                 field.setAccessible(true);
-                Object value = sourceMap.get(field.getName());
+                String nestedTextFieldName = Optional.ofNullable(typeMappingRulesForClass)
+                        .map(it -> it.renameFromJava().get(field.getName()))
+                        .orElse(field.getName());
+                Object value = sourceMap.get(nestedTextFieldName);
                 Object convertedValue = convertRecursively(value, field.getType(), field.getGenericType());
                 field.set(instance, convertedValue);
             }

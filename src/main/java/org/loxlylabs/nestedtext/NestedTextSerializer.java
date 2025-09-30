@@ -7,17 +7,17 @@ class NestedTextSerializer {
 
     private final Map<Class<?>, Serializer<?>> serializers = new HashMap<>();
     private final DumpOptions options;
+    private final Map<Class<?>, TypeMappingRules> typeMappingRules;
 
-    public NestedTextSerializer(DumpOptions options, Map<Class<?>, Serializer<?>> serializers) {
+    public NestedTextSerializer(DumpOptions options, Map<Class<?>, Serializer<?>> serializers, Map<Class<?>, TypeMappingRules> typeMappingRules) {
         this.options = options;
         this.serializers.putAll(serializers);
+        this.typeMappingRules = typeMappingRules;
     }
 
     public String serialize(Object obj) {
         StringBuilder sb = new StringBuilder();
-        if (options.useReflection()) {
-            obj = toNestedTextCompatible(obj);
-        }
+        obj = toNestedTextCompatible(obj);
         dumpValue(obj, sb, 0);
         // internal dump methods always add line separator
         removeLastLineSeparator(sb);
@@ -80,11 +80,27 @@ class NestedTextSerializer {
                     }
                     yield list;
                 } else if (o.getClass().isRecord()) {
+                    TypeMappingRules typeMappingRulesForClass = typeMappingRules.get(o.getClass());
                     Map<String,Object> map = new LinkedHashMap<>();
                     for (var comp : o.getClass().getRecordComponents()) {
+                        String fieldName = comp.getName();
+                        // ignore field during serialization
+                        if (typeMappingRulesForClass != null) {
+                            if (typeMappingRulesForClass.fieldsToIgnore().contains(comp.getName())) {
+                                continue;
+                            }
+                            // rename field when writing NestedText
+                            fieldName = typeMappingRulesForClass.renameFromJava().getOrDefault(fieldName, fieldName);
+                        }
                         try {
                             Object value = comp.getAccessor().invoke(o);
-                            map.put(comp.getName(), toNestedTextCompatible(value));
+                            if (typeMappingRulesForClass != null) {
+                                // ignore field when null
+                                if (value == null && typeMappingRulesForClass.fieldsToIgnoreWhenNull().contains(fieldName)) {
+                                    continue;
+                                }
+                            }
+                            map.put(fieldName, toNestedTextCompatible(value));
                         } catch (Exception e) {
                             throw new NestedTextException("Failed to serialize field '"
                                     + comp.getName()
@@ -96,11 +112,27 @@ class NestedTextSerializer {
                 } else {
                     // fallback: use public fields
                     Map<String,Object> map = new LinkedHashMap<>();
+                    TypeMappingRules typeMappingRulesForClass = typeMappingRules.get(o.getClass());
                     for (var field : o.getClass().getDeclaredFields()) {
                         try {
                             field.setAccessible(true);
+                            String fieldName = field.getName();
+                            // ignore field during serialization
+                            if (typeMappingRulesForClass != null) {
+                                if (typeMappingRulesForClass.fieldsToIgnore().contains(fieldName)) {
+                                    continue;
+                                }
+                                // rename field when writing NestedText
+                                fieldName = typeMappingRulesForClass.renameFromJava().getOrDefault(fieldName, fieldName);
+                            }
                             Object value = field.get(o);
-                            map.put(field.getName(), toNestedTextCompatible(value));
+                            if (typeMappingRulesForClass != null) {
+                                // ignore field when null
+                                if (value == null && typeMappingRulesForClass.fieldsToIgnoreWhenNull().contains(fieldName)) {
+                                    continue;
+                                }
+                            }
+                            map.put(fieldName, toNestedTextCompatible(value));
                         } catch (Exception e) {
                             throw new NestedTextException("Failed to serialize field '"
                                     + field.getName()

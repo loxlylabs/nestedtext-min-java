@@ -16,7 +16,7 @@ class NestedTextTest {
 
     @BeforeEach
     void setUp() {
-        nt = new NestedText();
+        nt = NestedText.builder().build();
     }
 
     @Nested
@@ -28,7 +28,7 @@ class NestedTextTest {
                     name: John Doe
                     age: 42
                     """;
-            Object result = nt.load(input);
+            Object result = nt.from(input).asObject();
             assertInstanceOf(Map.class, result);
             Map<?, ?> map = (Map<?, ?>) result;
             assertEquals("John Doe", map.get("name"));
@@ -42,7 +42,7 @@ class NestedTextTest {
                     - banana
                     - orange
                     """;
-            Object result = nt.load(input);
+            Object result = nt.from(input).asObject();
             assertInstanceOf(List.class, result);
             assertEquals(List.of("apple", "banana", "orange"), result);
         }
@@ -62,7 +62,7 @@ class NestedTextTest {
                     vice-president:
                         name: Margaret Hodge
                     """;
-            Object result = nt.load(input);
+            Object result = nt.from(input).asObject();
             assertInstanceOf(Map.class, result);
             Map<String, Object> map = (Map<String, Object>) result;
 
@@ -83,7 +83,7 @@ class NestedTextTest {
                         -
                         - item2
                     """;
-            Map<String, Object> result = (Map<String, Object>) nt.load(input);
+            Map<String, Object> result = (Map<String, Object>) nt.from(input).asObject();
             assertEquals("", result.get("key with empty value"));
             List<String> list = (List<String>) result.get("list with empty item");
             assertEquals(List.of("", "item2"), list);
@@ -95,25 +95,25 @@ class NestedTextTest {
                     > A man, a plan, a canal.
                     > Panama.
                     """;
-            Object result = nt.load(input);
+            Object result = nt.from(input).asObject();
             assertEquals("A man, a plan, a canal.\nPanama.", result);
         }
 
         @Test
         void shouldReturnNullForEmptyInput() {
-            assertNull(nt.load(""));
-            assertNull(nt.load("   "));
+            assertNull(nt.from("").asObject());
+            assertNull(nt.from("   ").asObject());
             String commentOnly = """
                     # This is a comment
                        # This is another indented comment
                     """;
-            assertNull(nt.load(commentOnly));
+            assertNull(nt.from(commentOnly).asObject());
         }
 
         @Test
         void shouldTrimWhitespaceFromKeys() {
             String input = "key with spaces   : value";
-            Map<String, Object> result = (Map<String, Object>) nt.load(input);
+            Map<String, Object> result = (Map<String, Object>) nt.from(input).asObject();
             assertTrue(result.containsKey("key with spaces"));
             assertEquals("value", result.get("key with spaces"));
         }
@@ -124,7 +124,7 @@ class NestedTextTest {
                     inline_dict: {key: value}
                     inline_list: [item1, item2]
                     """;
-            Map<String, Object> result = (Map<String, Object>) nt.load(input);
+            Map<String, Object> result = (Map<String, Object>) nt.from(input).asObject();
             assertEquals("{key: value}", result.get("inline_dict"));
             assertEquals("[item1, item2]", result.get("inline_list"));
         }
@@ -136,8 +136,8 @@ class NestedTextTest {
             // > c⏎ <-- ignore
             var input1 = "> a\n> b\n> c";
             var input2 = "> a\n> b\n> c\n";
-            assertEquals("a\nb\nc", nt.load(input1));
-            assertEquals("a\nb\nc", nt.load(input2));
+            assertEquals("a\nb\nc", nt.from(input1).asObject());
+            assertEquals("a\nb\nc", nt.from(input2).asObject());
         }
     }
 
@@ -239,7 +239,7 @@ class NestedTextTest {
                       > Second line.""";
 
             String result = nt
-                    .dump(person, new DumpOptions(System.lineSeparator(), 2, true));
+                    .dump(person, new DumpOptions(System.lineSeparator(), 2));
             assertEquals(expected, result);
         }
 
@@ -313,7 +313,7 @@ class NestedTextTest {
             String input = """
                     [key: value
                     """;
-            NestedTextException ex = assertThrows(NestedTextException.class, () -> nt.load(input));
+            NestedTextException ex = assertThrows(NestedTextException.class, () -> nt.from(input).asObject());
             assertEquals("key may not start with '['.", ex.getMessage());
             assertEquals(0, ex.getLine());
         }
@@ -323,7 +323,7 @@ class NestedTextTest {
             String input = """
                     {key: value
                     """;
-            NestedTextException ex = assertThrows(NestedTextException.class, () -> nt.load(input));
+            NestedTextException ex = assertThrows(NestedTextException.class, () -> nt.from(input).asObject());
             assertEquals("key may not start with '{'.", ex.getMessage());
             assertEquals(0, ex.getLine());
         }
@@ -331,7 +331,7 @@ class NestedTextTest {
         @Test
         void shouldThrowOnTabIndentation() {
             String input = "key:\n\t- list item";
-            NestedTextException ex = assertThrows(NestedTextException.class, () -> nt.load(input));
+            NestedTextException ex = assertThrows(NestedTextException.class, () -> nt.from(input).asObject());
             assertEquals("invalid character in indentation: '\\t'.", ex.getMessage());
             assertEquals(1, ex.getLine());
         }
@@ -343,7 +343,7 @@ class NestedTextTest {
                         key2: value
                       key3: value
                     """;
-            NestedTextException ex = assertThrows(NestedTextException.class, () -> nt.load(input));
+            NestedTextException ex = assertThrows(NestedTextException.class, () -> nt.from(input).asObject());
             assertEquals("invalid indentation, partial dedent.", ex.getMessage());
             assertEquals(2, ex.getLine());
         }
@@ -351,7 +351,7 @@ class NestedTextTest {
         @Test
         void shouldThrowOnTopLevelIndent() {
             String input = "  key: value";
-            NestedTextException ex = assertThrows(NestedTextException.class, () -> nt.load(input));
+            NestedTextException ex = assertThrows(NestedTextException.class, () -> nt.from(input).asObject());
             assertEquals("top-level content must start in column 1.", ex.getMessage());
         }
 
@@ -361,7 +361,7 @@ class NestedTextTest {
             // by itself with no value is valid ("key:"), but a key with text
             // following it and no colon is not.
             String input = "a key but no colon";
-            NestedTextException ex = assertThrows(NestedTextException.class, () -> nt.load(input));
+            NestedTextException ex = assertThrows(NestedTextException.class, () -> nt.from(input).asObject());
             assertEquals("unrecognized line.", ex.getMessage());
         }
     }

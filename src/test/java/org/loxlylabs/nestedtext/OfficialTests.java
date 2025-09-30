@@ -90,7 +90,7 @@ public class OfficialTests {
 
                         if (tc.load_err != null && !Objects.equals(tc.load_err, NO_ERROR)) {
                             NestedTextException ex = assertThrows(NestedTextException.class, () -> {
-                                new NestedText().load(decodedBytes);
+                                NestedTexts.from(decodedBytes).asObject();
                             });
                             if (tc.load_err.message != null) {
                                 assertEquals(tc.load_err.message, ex.getMessage());
@@ -109,11 +109,11 @@ public class OfficialTests {
                             }
                         } else {
                             // Parse from test file and dump back into a NestedText string
-                            Object obj = new NestedText().load(decodedBytes);
-                            String nestedTextDump = new NestedText().dump(obj);
+                            Object obj = NestedTexts.from(decodedBytes).asObject();
+                            String nestedTextDump = NestedTexts.dump(obj);
                             
                             // Parse again and write to JSON to compare against expected
-                            Object obj2 = new NestedText().load(nestedTextDump);
+                            Object obj2 = NestedTexts.from(nestedTextDump).asObject();
                             String expected = new ObjectMapper().writeValueAsString(tc.load_out);
                             String actual = new ObjectMapper().writeValueAsString(obj2);
                             assertJsonEquals(expected, actual);
