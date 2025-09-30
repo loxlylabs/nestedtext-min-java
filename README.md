@@ -55,7 +55,7 @@ String data = """
             phone: (555) 123-1234
         """;
 
-Team team = new NestedText().load(data, Team.class);
+Team team = NestedTexts.from(data).as(Team.class);
 ```
 
 Or you can load the NestedText into raw Maps, Lists, and Strings.
@@ -66,7 +66,7 @@ String data = """
           condition: user.level == "FULL_ACCESS" ? "AUTHORIZED" : "DENIED"
         """;
 
-Map dataMap = (Map)new NestedText().load(data);
+Map dataMap = (Map)NestedTexts.from(data).asObject();
 Map roleConfig = (Map)dataMap.get("role");
 
 // Prints: user.level == "FULL_ACCESS" ? "AUTHORIZED" : "DENIED"
@@ -82,35 +82,71 @@ String data = """
         - 2
         - 3
         """;
-List<Integer> numbers = new NestedText().load(data, new TypeReference<>() {});
+List<Integer> numbers = NestedTexts().from(data).as(new TypeReference<>() {});
 ```
 
-#### Custom Deserializers
+## Customizing Serialization and Deserialization
+
+The NestedText builder provides type and field level control over the
+serialization and deserialization process.
+
+### Renaming Fields
+
+```java
+NestedText nt = NestedText.builder()
+    .forType(Team.class, type -> {
+        type.renameField("team").to("teamName");
+}).build();
+```
+
+### Ignoring Fields
+
+```java
+NestedText nt = NestedText.builder()
+    .forType(Team.class, type -> {
+        // always ignore
+        type.ignoreField("team");
+        
+        // or conditionally ignore if the value is null
+        type.ignoreFieldWhenNull("team");
+}).build();
+```
+
+### Custom Deserialization
 
 If you're trying to deserialize a class without a default constructor,
 you can register a custom deserializer:
 
 ```java
-var nt = new NestedText();
-nt.registerDeserializer(MyUser.class, (value, context) -> {
-    if (!(value instanceof Map<?,?> m)) {
-        // throw - NestedText type mismatch
-    }
-    String name = context.convert(m.get("name"), String.class);
-    Integer age = context.convert(m.get("age"), Integer.class);
-    return new MyUser(name, age);
-});
+NestedText nt = NestedText.builder()
+        .registerDeserializer(MyUser.class, (value, context) -> {
+            if (!(value instanceof Map<?,?> m)) {
+                // throw - NestedText type mismatch
+            }
+            String name = context.convert(m.get("name"), String.class);
+            Integer age = context.convert(m.get("age"), Integer.class);
+            return new MyUser(name, age);
+        }).build();
 ```
 
 
 ### Dumping NestedText
 
 Outputting to a NestedText string:
-```java
-var data = Map.of("name", "Alice");
-String nestedText = new NestedText().dump(data);
 
-// Prints: name: Alice
+```java
+import org.loxlylabs.nestedtext.NestedTexts;
+
+// Use default configuration
+User user = new User("Alice", "123 Main St\nNew York, NY 10001", "(555) 123-1234");
+String nestedText = NestedTexts.dump(user);
+
+// Prints:
+// name: Alice
+// address:
+//     > 123 Main St
+//     > New York, NY 10001
+// phone: (555) 123-1234
 System.out.println(nestedText);
 ```
 
@@ -121,7 +157,7 @@ Maven:
 <dependency>
   <groupId>org.loxlylabs</groupId>
   <artifactId>nestedtext-min-java</artifactId>
-  <version>0.4.0</version>
+  <version>0.5.0</version>
 </dependency>
 ```
 
