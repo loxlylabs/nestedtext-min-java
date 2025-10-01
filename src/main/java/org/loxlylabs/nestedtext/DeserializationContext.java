@@ -168,6 +168,9 @@ public class DeserializationContext {
             // it would look like this:
             // users:<EOL>
             // When we load that NestedText, it reads it as an empty String.
+            if (Set.class.isAssignableFrom(targetClass)) {
+                return (T) Collections.emptySet();
+            }
             if (List.class.isAssignableFrom(targetClass) || Collection.class.isAssignableFrom(targetClass)) {
                 return (T) Collections.emptyList();
             }

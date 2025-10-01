@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -30,6 +31,8 @@ class DeserializationTest {
         record AddressRecord(String street, String city, String state, String zip) {}
 
         record ParentRecord(AddressRecord address, List<BasicRecord> children) {}
+
+        record ParentRecordWithSet(AddressRecord address, Set<BasicRecord> children) {}
 
         @Test
         void testNestedRecordFieldMappings() {
@@ -72,6 +75,21 @@ class DeserializationTest {
             var expectedAddress = new AddressRecord("123 Main Street", "New York", "NY", "10001");
             var expected = new ParentRecord(expectedAddress, List.of());
             assertEquals(expected, NestedTexts.from(nt).as(ParentRecord.class));
+        }
+
+        @Test
+        void testRecordWithEmptyListWithTargetSet() {
+            String nt = """
+                address:
+                  street: 123 Main Street
+                  city: New York
+                  state: NY
+                  zip: 10001
+                children:
+                """;
+            var expectedAddress = new AddressRecord("123 Main Street", "New York", "NY", "10001");
+            var expected = new ParentRecordWithSet(expectedAddress, Set.of());
+            assertEquals(expected, NestedTexts.from(nt).as(ParentRecordWithSet.class));
         }
 
         @Test
@@ -136,6 +154,40 @@ class DeserializationTest {
 
     @Nested
     public class PojoTests {
+        public static class ParentPojo {
+            private Set<BasicPojo> children;
+
+            public ParentPojo() {
+            }
+
+            public Set<BasicPojo> getChildren() {
+                return children;
+            }
+
+            public void setChildren(Set<BasicPojo> children) {
+                this.children = children;
+            }
+
+            @Override
+            public boolean equals(Object object) {
+                if (object == null || getClass() != object.getClass()) return false;
+
+                ParentPojo that = (ParentPojo) object;
+                return Objects.equals(children, that.children);
+            }
+
+            @Override
+            public int hashCode() {
+                return Objects.hashCode(children);
+            }
+
+            @Override
+            public String toString() {
+                return "ParentPojo{" +
+                        "children=" + children +
+                        '}';
+            }
+        }
         public static class BasicPojo {
             private int age;
             private String name;
@@ -193,6 +245,16 @@ class DeserializationTest {
                 result = 31 * result + Boolean.hashCode(active);
                 return result;
             }
+
+            @Override
+            public String toString() {
+                return "BasicPojo{" +
+                        "age=" + age +
+                        ", name='" + name + '\'' +
+                        ", weight=" + weight +
+                        ", active=" + active +
+                        '}';
+            }
         }
 
         @Test
@@ -208,6 +270,36 @@ class DeserializationTest {
             expected.setName("Alice");
             expected.setWeight(1.5);
             expected.setActive(true);
+            assertEquals(expected, actual);
+        }
+
+        @Test
+        void testParentPojo() {
+            ParentPojo actual = NestedTexts.from("""
+                    children:
+                      -
+                        age: 5
+                        name: Alice
+                        weight: 1.5
+                        active: true
+                    """).as(ParentPojo.class);
+            var child = new BasicPojo();
+            child.setAge(5);
+            child.setName("Alice");
+            child.setWeight(1.5);
+            child.setActive(true);
+            var expected = new ParentPojo();
+            expected.setChildren(Set.of(child));
+            assertEquals(expected, actual);
+        }
+
+        @Test
+        void testParentPojoWithEmptyChildren() {
+            ParentPojo actual = NestedTexts.from("""
+                    children:
+                    """).as(ParentPojo.class);
+            var expected = new ParentPojo();
+            expected.setChildren(Set.of());
             assertEquals(expected, actual);
         }
 
